@@ -154,13 +154,24 @@
   const sections = $$("main section[id]");
   const tFill = $(".timeline-fill"), timeline = $("#timeline");
   const tItems = $$(".t-item");
+  let sectionTops = [];
+  const measure = () => { sectionTops = sections.map((s) => [s.id, s.offsetTop]); };
+  measure();
+  addEventListener("load", measure);
+  let ticking = false;
   const onScroll = () => {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(updateScroll);
+  };
+  const updateScroll = () => {
+    ticking = false;
     const y = window.scrollY, h = document.documentElement.scrollHeight - innerHeight;
     nav.classList.toggle("scrolled", y > 20);
     progress.style.transform = `scaleX(${h > 0 ? y / h : 0})`;
 
     let current = "";
-    sections.forEach((s) => { if (y >= s.offsetTop - 140) current = s.id; });
+    sectionTops.forEach(([id, top]) => { if (y >= top - 140) current = id; });
     $$("a", links).forEach((a) => a.classList.toggle("active", a.getAttribute("href") === `#${current}`));
 
     // timeline fills as you scroll
@@ -170,7 +181,7 @@
     tItems.forEach((it) => it.classList.toggle("lit", it.getBoundingClientRect().top < innerHeight * 0.6));
   };
   addEventListener("scroll", onScroll, { passive: true });
-  onScroll();
+  updateScroll();
 
   /* ---------- REVEAL + COUNTERS ---------- */
   const countUp = (el) => {
@@ -216,10 +227,13 @@
   /* ---------- CURSOR GLOW + PROJECT TILT ---------- */
   const glow = $(".cursor-glow");
   const mouse = { x: -9999, y: -9999 };
-  addEventListener("pointermove", (e) => {
-    mouse.x = e.clientX; mouse.y = e.clientY;
-    glow.style.left = e.clientX + "px"; glow.style.top = e.clientY + "px";
-  });
+  const hasMouse = matchMedia("(hover: hover) and (pointer: fine)").matches;
+  if (hasMouse) {
+    addEventListener("pointermove", (e) => {
+      mouse.x = e.clientX; mouse.y = e.clientY;
+      glow.style.left = e.clientX + "px"; glow.style.top = e.clientY + "px";
+    });
+  }
   if (!reduceMotion && matchMedia("(hover: hover)").matches) {
     $$(".project").forEach((card) => {
       const glare = $(".glare", card);
@@ -235,14 +249,26 @@
 
   /* ---------- NEURAL NETWORK BACKGROUND ---------- */
   const canvas = $("#neural"), ctx = canvas.getContext("2d");
-  let W, H, nodes = [], pulses = [], dpr = Math.min(devicePixelRatio || 1, 2);
-  const LINK = 140;
+  const lite = !hasMouse || innerWidth < 900; // phones & tablets get a lighter animation
+  let W = 0, H = 0, nodes = [], pulses = [];
+  const dpr = lite ? 1 : Math.min(devicePixelRatio || 1, 2);
+  const LINK = lite ? 110 : 140;
   const css = (v) => getComputedStyle(root).getPropertyValue(v).trim();
+  let c1 = css("--node"), c2 = css("--node-2");
+  new MutationObserver(() => { c1 = css("--node"); c2 = css("--node-2"); }).observe(root, { attributes: true, attributeFilter: ["data-theme"] });
   const resize = () => {
-    W = innerWidth; H = innerHeight;
+    // Phones fire resize when the address bar hides/shows while scrolling.
+    // Only rebuild when the width really changes, so the background never jumps.
+    const newW = innerWidth;
+    const newH = Math.max(innerHeight, lite ? screen.height || 0 : 0);
+    if (newW === W && (lite ? Math.abs(newH - H) < 160 : newH === H)) return;
+    const widthChanged = newW !== W;
+    W = newW; H = newH;
     canvas.width = W * dpr; canvas.height = H * dpr;
+    canvas.style.height = H + "px";
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    const count = Math.min(110, Math.floor((W * H) / 14000));
+    if (!widthChanged && nodes.length) return;
+    const count = lite ? Math.min(32, Math.floor((W * H) / 22000)) : Math.min(110, Math.floor((W * H) / 14000));
     nodes = Array.from({ length: count }, () => ({
       x: Math.random() * W, y: Math.random() * H,
       vx: (Math.random() - 0.5) * 0.35, vy: (Math.random() - 0.5) * 0.35,
@@ -252,8 +278,12 @@
   resize();
   addEventListener("resize", resize);
 
-  const draw = () => {
-    const c1 = css("--node"), c2 = css("--node-2");
+  let last = 0;
+  const draw = (t = 0) => {
+    if (!reduceMotion) requestAnimationFrame(draw);
+    if (document.hidden) return;
+    if (lite && t - last < 33) return; // ~30fps on phones
+    last = t;
     ctx.clearRect(0, 0, W, H);
     for (const n of nodes) {
       n.x += n.vx; n.y += n.vy;
@@ -271,7 +301,7 @@
           ctx.strokeStyle = `rgba(${c1},${(1 - d / LINK) * 0.28})`;
           ctx.lineWidth = 1;
           ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
-          if (pulses.length < 14 && Math.random() < 0.0008) pulses.push({ a, b, t: 0 });
+          if (!lite && pulses.length < 14 && Math.random() < 0.0008) pulses.push({ a, b, t: 0 });
         }
       }
       const md = Math.hypot(mouse.x - a.x, mouse.y - a.y);
@@ -291,7 +321,6 @@
       ctx.beginPath(); ctx.arc(x, y, 2.2, 0, Math.PI * 2); ctx.fill();
       ctx.shadowBlur = 0;
     }
-    if (!reduceMotion) requestAnimationFrame(draw);
   };
   draw();
 
@@ -358,5 +387,5 @@
     ask(input.value);
     input.value = "";
   });
-  addMsg(`Hi! 👋 I'm ${D.firstName}'s AI assistant. Ask me anything about ${D.firstName}'s work, or tap a question below.`, "bot");
+  addMsg(`Hi! 👋 I'm Chandrika's AI. Ask me anything about ${D.firstName}'s work, or tap a question below.`, "bot");
 })();
