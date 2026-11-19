@@ -539,3 +539,12 @@ svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width:
 .project-links a { font-size: 0.85rem; padding: 7px 14px; font-weight: 600; }
 .project-links a.btn-live { color: var(--cyan); border-color: rgba(var(--node-2), 0.4); }
 @media (max-width: 560px) { .projects-grid { grid-template-columns: 1fr; } }
+
+/* ---- mobile polish ---- */
+@media (max-width: 560px) {
+  .badge { display: inline-grid; grid-template-columns: auto 1fr; column-gap: 10px; row-gap: 2px; border-radius: 14px; font-size: 0.78rem; }
+  .badge .pulse { grid-row: span 2; }
+  .badge-sep { display: none; }
+  .orb { width: min(260px, 70vw); }
+  .hero { padding-top: 96px; gap: 24px; }
+}
