@@ -387,6 +387,10 @@ svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width:
   padding: 30px 0 40px; border-top: 1px solid var(--border); color: var(--muted); font-size: 0.88rem;
 }
 .footer a:hover { color: var(--cyan); }
+.visits { display: inline-flex; align-items: center; gap: 8px; }
+.visits[hidden] { display: none; }
+.visits strong { color: var(--text); font-family: var(--mono); font-weight: 600; font-variant-numeric: tabular-nums; }
+.visits-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); }
 
 /* ============ REVEAL ON SCROLL ============ */
 .reveal { opacity: 0; transform: translateY(28px); transition: opacity 0.8s ease, transform 0.8s ease; }

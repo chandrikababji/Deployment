@@ -387,5 +387,32 @@
     ask(input.value);
     input.value = "";
   });
+  /* ---------- VISITOR COUNTER (footer) ---------- */
+  // Each browser is counted once. Later visits only read the number.
+  // If the counter is unavailable the line simply stays hidden.
+  (async () => {
+    const box = $("#visits"), num = $("#visitCount");
+    let counted = false;
+    try { counted = localStorage.getItem("visit_counted") === "1"; } catch {}
+    try {
+      const r = await fetch("/api/visits", { method: counted ? "GET" : "POST" });
+      if (!r.ok) return;
+      const { count } = await r.json();
+      if (!count) return;
+      if (!counted) { try { localStorage.setItem("visit_counted", "1"); } catch {} }
+      $("#visitWord").textContent = count === 1 ? "person" : "people";
+      box.hidden = false;
+      const fmt = (n) => Math.round(n).toLocaleString("en-IN");
+      if (reduceMotion) { num.textContent = fmt(count); return; }
+      const t0 = performance.now(), dur = 1400;
+      const tick = (t) => {
+        const p = Math.min(1, (t - t0) / dur);
+        num.textContent = fmt(count * (1 - Math.pow(1 - p, 3)));
+        if (p < 1) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    } catch {}
+  })();
+
   addMsg(`Hi! 👋 I'm Chandrika's AI. Ask me anything about ${D.firstName}'s work, or tap a question below.`, "bot");
 })();
